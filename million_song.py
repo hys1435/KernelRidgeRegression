@@ -6,6 +6,8 @@ Created on Mon Apr 22 21:49:15 2019
 @author: Zhaoqi Li
 """
 
+# The subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -39,3 +41,9 @@ y_train = Y[0:463715]
 # Validation data set
 X_test = X[463715:]
 y_test = Y[463715:]
+
+def main():
+    dist_metric = "gaussian"
+    mLst = [32, 38, 48, 64, 96, 128, 256]
+    sigma = 6 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
+    
