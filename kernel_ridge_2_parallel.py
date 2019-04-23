@@ -84,18 +84,23 @@ def main():
     mLst = np.logspace(0, 3, num = 4, base = 4).astype(int)
     dist_metric = "sobolev"
     mse_lst = np.zeros((mLst.size, NLst.size))
+    mse_lst_u = np.zeros((mLst.size, NLst.size))
     for i, N in enumerate(NLst):
         X, y = init_data(N)
-        lam = N**(-2/3)
-        params = [-1, lam] # params are nothing and lambda
         alpha = np.zeros(N)
         for j, m in enumerate(mLst):
             X_split = split_into_m_parts(X, m)
             y_split = split_into_m_parts(y, m)
             n = int(N / m)
+            lam = N**(-2/3)
+            params = [-1, lam] # params are nothing and lambda
+            lam_u = n**(-2/3)
+            params_u = [-1, lam_u]
             p = Pool(m)
             results = [p.apply_async(compute_kernel_ridge_coeffs, [XX, yy, params, dist_metric]) 
-            for XX, yy in zip(X_split, y_split)]
+                        for XX, yy in zip(X_split, y_split)]
+            results_u = [p.apply_async(compute_kernel_ridge_coeffs, [XX, yy, 
+                        params_u, dist_metric]) for XX, yy in zip(X_split, y_split)]
             p.close()
             p.join()
             
@@ -103,21 +108,31 @@ def main():
                 alpha[k*n:(k+1)*n] = r.get()
             y_pred = predict(X, alpha, m, params, dist_metric)
             mse_lst[j,i] = np.mean((y - y_pred)**2)
+            
+            for k, r in enumerate(results_u):
+                alpha[k*n:(k+1)*n] = r.get()
+            y_pred = predict(X, alpha, m, params_u, dist_metric)
+            mse_lst_u[j,i] = np.mean((y - y_pred)**2)
             print("run time is: ", (time.time() - start_time))
 
     # Plot results
-    ax = plt.subplot(111)
+    ax = plt.subplot(2,1,1)
     cols = ['red', 'blue', 'yellow', 'orange']
     markers = ['o', '^', 's', 'd']
     plt.xticks(NLst)
     ax.set_yscale('log')
     for i in range(mLst.size):
         ax.plot(NLst, mse_lst[i], c=cols[i], marker=markers[i],label='m={}'.format(4**i))
-    ax.legend(loc='upper right')
+    plt.legend(loc='upper right')
     
+    ax2 = plt.subplot(2,1,2)
+    for i in range(mLst.size):
+        ax2.plot(NLst, mse_lst_u[i], c=cols[i], marker=markers[i],label='m={}'.format(4**i))
+    plt.legend(loc='upper right')
     plt.xlabel("Total number of samples (N)")
     plt.ylabel("Mean square error")
     plt.title("Kernel Ridge Regression without under-regularization")
+    
     
     plt.show()
 
