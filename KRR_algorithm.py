@@ -38,8 +38,12 @@ def compute_kernel_ridge_coeffs(X, y, params, dist_metric):
     return alpha
 
 def split_into_m_parts(X, m):
-    n = int(X.size / m)
-    res = np.zeros((m, n))
+    n = int(X.shape[0] / m)
+    resShape = [m, n]
+    if len(X.shape) > 1:
+        for item in X.shape[1:]:
+            resShape.append(item)
+    res = np.zeros(resShape)
     for i in range(m):
         res[i] = X[i*n:(i+1)*n]
     return res
@@ -50,3 +54,21 @@ def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     if (output):
         return y_pred, K, alpha
     return y_pred
+
+def compute_mse(X, y, N, m, p, params, dist_metric, 
+                X_test = None, y_test = None, real = False):
+    alpha = np.zeros(N)
+    n = int(N / m)
+    X_split = split_into_m_parts(X, m)
+    y_split = split_into_m_parts(y, m)
+    results = [p.apply_async(compute_kernel_ridge_coeffs, [XX, yy, params, dist_metric]) 
+                for XX, yy in zip(X_split, y_split)]
+    for k, r in enumerate(results):
+        alpha[k*n:(k+1)*n] = r.get()
+    if (real):
+        y_pred = predict(X, X_test, alpha, m, params, dist_metric)
+        mse = np.mean((y_test - y_pred)**2)
+    else:
+        y_pred = predict(X, X, alpha, m, params, dist_metric)
+        mse = np.mean((y - y_pred)**2)
+    return mse

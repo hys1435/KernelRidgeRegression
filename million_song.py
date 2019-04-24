@@ -10,8 +10,13 @@ Created on Mon Apr 22 21:49:15 2019
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from KRR_algorithm import compute_mse
+from multiprocessing import Pool
+import time
 
 import numpy as np
+#%%
+
 # fixed random seed for reproducibility
 np.random.seed(0)
 
@@ -42,8 +47,31 @@ y_train = Y[0:463715]
 X_test = X[463715:]
 y_test = Y[463715:]
 
+#%%
 def main():
+    start_time = time.time()
+    #N = 463715
+    N = 2000 # small sample test
+    X_train = X[0:N]
+    X_test = X[463715:(463715+int(N/10))]
+    y_train = Y[0:N]
+    y_test = Y[463715:(463715+int(N/10))]
     dist_metric = "gaussian"
-    mLst = [32, 38, 48, 64, 96, 128, 256]
+    #mLst = [32, 38, 48, 64, 96, 128, 256]
     sigma = 6 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
+    mLst = [4, 8]
+    lam = N**(-1)
+    params = [sigma, lam]
+    mse_lst = np.zeros(len(mLst))
+    for i, m in enumerate(mLst):
+        p = Pool(m)
+        mse_lst[i] = compute_mse(X_train, y_train, N, m, p, params, dist_metric, 
+                    X_test, y_test, real = True)
+        print("run time is: ", (time.time() - start_time))
+        print(mse_lst[i])
+    print(mse_lst)
+    
+if __name__ == '__main__':
+     main()
+    
     

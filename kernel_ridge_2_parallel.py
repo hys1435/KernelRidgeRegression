@@ -6,7 +6,7 @@ Created on Thu Apr  4 12:23:40 2019
 @author: Zhaoqi Li
 """
 import numpy as np
-from KRR_algorithm import compute_kernel_ridge_coeffs, split_into_m_parts, predict
+from KRR_algorithm import compute_mse
 from multiprocessing import Pool
 import time
 import matplotlib.pyplot as plt
@@ -20,8 +20,7 @@ def init_sim_data(N):
     epsilon = np.random.normal(scale = 1/5, size = N)
     y = f_star(X) + epsilon
     return X, y
-
-
+    
 def main():
     # Initialize global variables
     #np.random.seed(521)
@@ -33,32 +32,17 @@ def main():
     mse_lst_nr = np.zeros((mLst.size, NLst.size))
     for i, N in enumerate(NLst):
         X, y = init_sim_data(N)
-        alpha = np.zeros(N)
         for j, m in enumerate(mLst):
-            X_split = split_into_m_parts(X, m)
-            y_split = split_into_m_parts(y, m)
-            n = int(N / m)
             lam = N**(-2/3)
+            n = int(N / m)
+            p = Pool(m)
             params = [-1, lam] # params are nothing and lambda
             lam_nr = n**(-2/3)
             params_nr = [-1, lam_nr]
-            p = Pool(m)
-            results = [p.apply_async(compute_kernel_ridge_coeffs, [XX, yy, params, dist_metric]) 
-                        for XX, yy in zip(X_split, y_split)]
-            results_u = [p.apply_async(compute_kernel_ridge_coeffs, [XX, yy, 
-                        params_nr, dist_metric]) for XX, yy in zip(X_split, y_split)]
+            mse_lst[j,i] = compute_mse(X, y, N, m, p, params, dist_metric)
+            mse_lst_nr[j,i] = compute_mse(X, y, N, m, p, params_nr, dist_metric)
             p.close()
             p.join()
-            
-            for k, r in enumerate(results):
-                alpha[k*n:(k+1)*n] = r.get()
-            y_pred = predict(X, X, alpha, m, params, dist_metric)
-            mse_lst[j,i] = np.mean((y - y_pred)**2)
-            
-            for k, r in enumerate(results_u):
-                alpha[k*n:(k+1)*n] = r.get()
-            y_pred = predict(X, X, alpha, m, params_nr, dist_metric)
-            mse_lst_nr[j,i] = np.mean((y - y_pred)**2)
             print("run time is: ", (time.time() - start_time))
 
     # Plot results
