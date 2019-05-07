@@ -9,9 +9,9 @@ Created on Mon Apr 22 21:49:15 2019
 # The subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
 
 import pandas as pd
-import matplotlib.pyplot as plt
-from KRR_algorithm import compute_mse
+from KRR_algorithm import compute_mse, compute_coeffs_from_K, predict
 from multiprocessing import Pool
+from sklearn.kernel_approximation import Nystroem
 import time
 
 import numpy as np
@@ -33,7 +33,7 @@ X = data.ix[:,1:].as_matrix()  # this is the 90 columns without the year
 Y = data.ix[:,0].as_matrix()   # this is the year column
 
 # data normalizations (scaling down all values to the interval [0,1])
-# The years 1922-2011 are scaled down to integers [0,1,2,..., 89] 
+# The years 1922-2011 are scaled down to integers [0,1,2,..., 89]
 a = X.min()
 b = X.max()
 X = (X - a) / (b - a)  # all values now between 0 and 1 !
@@ -47,31 +47,40 @@ y_train = Y[0:463715]
 X_test = X[463715:]
 y_test = Y[463715:]
 
+print("------ finished read data ------")
 #%%
 def main():
     start_time = time.time()
     #N = 463715
+
     N = 2000 # small sample test
+    mLst = [4, 8]
     X_train = X[0:N]
     X_test = X[463715:(463715+int(N/10))]
     y_train = Y[0:N]
     y_test = Y[463715:(463715+int(N/10))]
+
     dist_metric = "gaussian"
     #mLst = [32, 38, 48, 64, 96, 128, 256]
     sigma = 6 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
-    mLst = [4, 8]
     lam = N**(-1)
     params = [sigma, lam]
+    r = 1 * 10**1
     mse_lst = np.zeros(len(mLst))
     for i, m in enumerate(mLst):
         p = Pool(m)
-        mse_lst[i] = compute_mse(X_train, y_train, N, m, p, params, dist_metric, 
+        mse_lst[i] = compute_mse(X_train, y_train, N, m, p, params, dist_metric,
                     X_test, y_test, real = True)
+        feature_map_nystroem = Nystroem(gamma = 1/sigma**2, n_components = r)
+        K_Nys = feature_map_nystroem.fit_transform(data)
+        alpha = compute_coeffs_from_K(K_Nys, y_train, params)
+        y_pred = predict(X, X_test, alpha, m, params, dist_metric)
+        mse = np.mean((y_test - y_pred)**2)
         print("run time is: ", (time.time() - start_time))
         print(mse_lst[i])
+        print("Nystrom: ", mse)
     print(mse_lst)
-    
+
 if __name__ == '__main__':
      main()
-    
-    
+

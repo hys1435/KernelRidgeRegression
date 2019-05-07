@@ -31,8 +31,12 @@ def compute_gram_mat(X1, X2, params, dist_metric):
     return gram_mat
 
 def compute_kernel_ridge_coeffs(X, y, params, dist_metric):
-    lam = params[-1]
     K = compute_gram_mat(X, X, params, dist_metric)
+    alpha = compute_coeffs_from_K(K, y, params)
+    return alpha
+
+def compute_coeffs_from_K(K, y, params):
+    lam = params[-1]
     K_sudinv = np.linalg.inv(K + lam * y.size * np.eye(K.shape[0]))
     alpha = np.dot(K_sudinv, y)
     return alpha
