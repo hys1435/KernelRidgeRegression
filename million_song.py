@@ -9,9 +9,8 @@ Created on Mon Apr 22 21:49:15 2019
 # The subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
 
 import pandas as pd
-from KRR_algorithm import compute_mse, compute_coeffs_from_K, predict
+from KRR_algorithm import compute_gram_mat, compute_mse, compute_coeffs_from_K, predict
 from multiprocessing import Pool
-from sklearn.kernel_approximation import Nystroem
 import time
 
 import numpy as np
@@ -49,11 +48,20 @@ y_test = Y[463715:]
 
 print("------ finished read data ------")
 #%%
+
+# Different low-rank approximation methods for the kernel matrix
+
+def Nystrom_sampling(X, rank, params, dist_metric):
+    Kmn = compute_gram_mat(X, X[0:rank], params, dist_metric)
+    Kmm = compute_gram_mat(X[0:rank], X[0:rank], params, dist_metric)
+    Kmm_inv = np.linalg.inv(Kmm)
+    return np.matmul(np.matmul(Kmn, Kmm_inv),np.transpose(Kmn))
+
 def main():
     start_time = time.time()
     #N = 463715
 
-    N = 2000 # small sample test
+    N = 200 # small sample test
     mLst = [4, 8]
     X_train = X[0:N]
     X_test = X[463715:(463715+int(N/10))]
@@ -66,19 +74,25 @@ def main():
     lam = N**(-1)
     params = [sigma, lam]
     r = 1 * 10**1
+    K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
+    print("K_Nys: ", K_Nys)
+    K = compute_gram_mat(X_train, X_train, params, dist_metric)
+    print("K: ", K)
+    print("Difference: ", np.linalg.norm(K-K_Nys))
+    
     mse_lst = np.zeros(len(mLst))
     for i, m in enumerate(mLst):
         p = Pool(m)
         mse_lst[i] = compute_mse(X_train, y_train, N, m, p, params, dist_metric,
                     X_test, y_test, real = True)
-        feature_map_nystroem = Nystroem(gamma = 1/sigma**2, n_components = r)
-        K_Nys = feature_map_nystroem.fit_transform(data)
-        alpha = compute_coeffs_from_K(K_Nys, y_train, params)
-        y_pred = predict(X, X_test, alpha, m, params, dist_metric)
-        mse = np.mean((y_test - y_pred)**2)
+        #feature_map_nystroem = Nystroem(gamma = 1/sigma**2, n_components = r)
+        #K_Nys = feature_map_nystroem.fit_transform(data)
+        #alpha = compute_coeffs_from_K(K_Nys, y_train, params)
+        #y_pred = predict(X, X_test, alpha, m, params, dist_metric)
+        #mse = np.mean((y_test - y_pred)**2)
         print("run time is: ", (time.time() - start_time))
         print(mse_lst[i])
-        print("Nystrom: ", mse)
+        #print("Nystrom: ", mse)
     print(mse_lst)
 
 if __name__ == '__main__':
