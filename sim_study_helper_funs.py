@@ -6,13 +6,15 @@ Created on Wed May 15 14:49:17 2019
 @author: zli9
 """
 
+# helper functions for simulation studies
+
 import numpy as np
 
 def f_star(x):
     return np.minimum(x, 1-x)
 
-# Initialize data given N number of samples
 def init_sim_data(N):
+    # Initialize data given N number of samples
     X = np.random.uniform(size = N)
     epsilon = np.random.normal(scale = 1/5, size = N)
     y = f_star(X) + epsilon

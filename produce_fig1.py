@@ -11,6 +11,8 @@ from sim_study_helper_funs import init_sim_data, init_params
 import time
 import matplotlib.pyplot as plt
     
+# code to reproduce Figure 1 of zhang15d paper
+
 def main():
     # Initialize global variables
     #np.random.seed(521)
@@ -19,8 +21,8 @@ def main():
     mLst = np.logspace(0, 3, num = 4, base = 4).astype(int)
     dist_metric = "sobolev"
     sim_num = 20
-    mse_lst = np.zeros((mLst.size, NLst.size, sim_num))
-    mse_lst_nr = np.zeros((mLst.size, NLst.size, sim_num))
+    mse_lst = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse with under-regularization
+    mse_lst_nr = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse without under-regularization
     for k in range(sim_num):
         for i, N in enumerate(NLst):
             X, y = init_sim_data(N)

@@ -6,6 +6,8 @@ Created on Mon Apr 22 21:48:30 2019
 @author: Zhaoqi Li
 """
 
+# Kernel Ridge Regression Algorithm reproducing results from zhang15d paper
+
 import numpy as np
 
 def gaussianRBF(u, v, params):
@@ -31,17 +33,21 @@ def compute_gram_mat(X1, X2, params, dist_metric):
     return gram_mat
 
 def compute_kernel_ridge_coeffs(X, y, params, dist_metric):
+    # Key algorithm to compute the kernel ridge coefficients alpha
     K = compute_gram_mat(X, X, params, dist_metric)
     alpha = compute_coeffs_from_K(K, y, params)
     return alpha
 
 def compute_coeffs_from_K(K, y, params):
+    # compute the kernel coefficients alpha given the gram matrix K, formula listed as 
+    # equantion (37) of the original paper
     lam = params[-1]
     K_sudinv = np.linalg.inv(K + lam * y.size * np.eye(K.shape[0]))
     alpha = np.dot(K_sudinv, y)
     return alpha
 
 def split_into_m_parts(X, m):
+    # split the entire dataset into subsets
     n = int(X.shape[0] / m)
     resShape = [m, n]
     if len(X.shape) > 1:
@@ -53,6 +59,7 @@ def split_into_m_parts(X, m):
     return res
 
 def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
+    # compute the prediction of y using kernel coefficients alpha
     K = compute_gram_mat(X_test, X_train, params, dist_metric)
     y_pred = 1/m * np.dot(K, alpha)
     if (output):
@@ -61,6 +68,8 @@ def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
 
 def compute_mse(X, y, N, m, params, dist_metric, 
                 X_test = None, y_test = None, real = False):
+    # Key function to compute the mse, real is the parameter indicating if it's 
+    # simulation study or real data
     alpha = np.zeros(N)
     n = int(N / m)
     X_split = split_into_m_parts(X, m)
