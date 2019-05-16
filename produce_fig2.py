@@ -16,41 +16,42 @@ def main():
     # Initialize global variables
     #np.random.seed(521)
     start_time = time.time()
-    NLst = np.logspace(8, 12, num = 6, base = 2).astype(int) # correct one is 8-13
+    NLst = np.logspace(8, 11, num = 4, base = 2).astype(int) # correct one is 8-13
+    sim_num = 20
     dist_metric = "sobolev"
     mse_lst = list()
+    logmnLst = list()
     for i, N in enumerate(NLst):
-        X, y = init_sim_data(N)
-        logmnLst = np.linspace(1/N, 1)
-        mse = np.zeros(logmnLst.size)
-        mLst = np.logspace(1, N).astype(int)
-        for j, m in enumerate(mLst):
-            lam, n, p, params = init_params(N, m)
-            mse[j] = compute_mse(X, y, N, m, p, params, dist_metric)
-            p.close()
-            p.join()
+        logN = np.log2(N)
+        logmn = np.linspace(0, 1, num = logN, endpoint = False)
+        mse = np.zeros([logmn.size, sim_num])
+        mLst = np.logspace(start = 0, stop = logN, num = logN, base = 2, endpoint = False).astype(int)
+        for k in range(sim_num):
+            X, y = init_sim_data(N)
+            for j, m in enumerate(mLst):
+                lam, n, params = init_params(N, m)
+                mse[j, k] = compute_mse(X, y, N, m, params, dist_metric)
             print("run time is: ", (time.time() - start_time))
-        mse_lst.append(mse)
-    """
+        mse_std = np.std(mse, axis = 1)/N # compute the standard error
+        mse_mean = np.mean(mse, axis = 1)
+        mse_lst.append(mse_mean)
+        logmnLst.append(logmn)
+    print(mse_lst)
+
     # Plot results
-    ax = plt.subplot(3,1,1)
+    ax = plt.subplot(2,1,1)
     cols = ['red', 'blue', 'yellow', 'orange']
     markers = ['o', '^', 's', 'd']
     plt.xticks(NLst)
     ax.set_yscale('log')
-    for i in range(mLst.size):
-        ax.plot(NLst, mse_lst[i], c=cols[i], marker=markers[i],label='m={}'.format(4**i))
+    for i, (logmn, mse) in enumerate(zip(mse_lst, logmnLst)):
+        ax.plot(mse, logmn, c=cols[i], marker=markers[i],label='N={}'.format(2**(i+8)))
     plt.legend(loc='upper right')
-    
-    ax2 = plt.subplot(3,1,2)
-    for i in range(mLst.size):
-        ax2.plot(NLst, mse_lst_nr[i], c=cols[i], marker=markers[i],label='m={}'.format(4**i))
-    plt.legend(loc='upper right')
-    plt.xlabel("Total number of samples (N)")
+    plt.xlabel("log(# of partitions)/log(# of samples)")
     plt.ylabel("Mean square error")
-    plt.title("Kernel Ridge Regression without under-regularization")
+    #plt.title("Kernel Ridge Regression without under-regularization")
 
     plt.show()
-    """
+
 if __name__ == '__main__':
      main()

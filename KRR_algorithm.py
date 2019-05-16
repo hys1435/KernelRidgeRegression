@@ -59,6 +59,23 @@ def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
         return y_pred, K, alpha
     return y_pred
 
+def compute_mse(X, y, N, m, params, dist_metric, 
+                X_test = None, y_test = None, real = False):
+    alpha = np.zeros(N)
+    n = int(N / m)
+    X_split = split_into_m_parts(X, m)
+    y_split = split_into_m_parts(y, m)
+    for k, (XX, yy) in enumerate(zip(X_split, y_split)):
+        alpha[k*n:(k+1)*n] = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
+    if (real):
+        y_pred = predict(X, X_test, alpha, m, params, dist_metric)
+        mse = np.mean((y_test - y_pred)**2)
+    else:
+        y_pred = predict(X, X, alpha, m, params, dist_metric)
+        mse = np.mean((y - y_pred)**2)
+    return mse
+
+"""
 def compute_mse(X, y, N, m, p, params, dist_metric, 
                 X_test = None, y_test = None, real = False):
     alpha = np.zeros(N)
@@ -76,3 +93,4 @@ def compute_mse(X, y, N, m, p, params, dist_metric,
         y_pred = predict(X, X, alpha, m, params, dist_metric)
         mse = np.mean((y - y_pred)**2)
     return mse
+    """
