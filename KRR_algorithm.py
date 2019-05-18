@@ -84,6 +84,18 @@ def compute_mse(X, y, N, m, params, dist_metric,
         mse = np.mean((y - y_pred)**2)
     return mse
 
+def compute_mse_no_avg(X, y, N, m, params, dist_metric, 
+                X_test = None, y_test = None, real = False):
+    # Key function to compute the mse, real is the parameter indicating if it's 
+    # simulation study or real data
+    n = int(N / m)
+    X1 = X[0:n]
+    y1 = y[0:n]
+    alpha = compute_kernel_ridge_coeffs(X1, y1, params, dist_metric)
+    y_pred = m * predict(X1, X_test, alpha, m, params, dist_metric) # multiply by m to remove averaging
+    mse = np.mean((y_test - y_pred)**2)
+    return mse
+    
 """
 def compute_mse(X, y, N, m, p, params, dist_metric, 
                 X_test = None, y_test = None, real = False):
