@@ -25,6 +25,9 @@ def get_kernel(dist_metric):
     elif (dist_metric == "sobolev"):
         return sobolev
     
+def f_star(x):
+    return np.minimum(x, 1-x)
+
 def compute_gram_mat(X1, X2, params, dist_metric):
     kernel = get_kernel(dist_metric)
     gram_mat = np.zeros((X1.shape[0],X2.shape[0]))
@@ -42,8 +45,9 @@ def compute_coeffs_from_K(K, y, params):
     # compute the kernel coefficients alpha given the gram matrix K, formula listed as 
     # equantion (37) of the original paper
     lam = params[-1]
-    K_sudinv = np.linalg.inv(K + lam * y.size * np.eye(K.shape[0]))
-    alpha = np.dot(K_sudinv, y)
+    alpha = np.linalg.solve(K + lam * y.size * np.eye(K.shape[0]), y)
+    #K_sudinv = np.linalg.inv(K + lam * y.size * np.eye(K.shape[0]))
+    #alpha = np.dot(K_sudinv, y)
     return alpha
 
 def split_into_m_parts(X, m):
@@ -67,7 +71,7 @@ def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     return y_pred
 
 def compute_mse(X, y, N, m, params, dist_metric, 
-                X_test = None, y_test = None, real = False):
+                X_test = None, y_test = None, real = False, integral = False):
     # Key function to compute the mse, real is the parameter indicating if it's 
     # simulation study or real data
     alpha = np.zeros(N)
@@ -79,9 +83,15 @@ def compute_mse(X, y, N, m, params, dist_metric,
     if (real):
         y_pred = predict(X, X_test, alpha, m, params, dist_metric)
         mse = np.mean((y_test - y_pred)**2)
+    elif (integral):
+        X_seq = np.linspace(start = 1e-4, stop = 1, num = 1000)
+        y_pred = predict(X, X_seq, alpha, m, params, dist_metric)
+        y_star = f_star(X_seq)
+        mse = np.mean((y_star - y_pred)**2)
     else:
         y_pred = predict(X, X, alpha, m, params, dist_metric)
-        mse = np.mean((y - y_pred)**2)
+        y_star = f_star(X)
+        mse = np.mean((y_star - y_pred)**2)
     return mse
 
 def compute_mse_no_avg(X, y, N, m, params, dist_metric, 

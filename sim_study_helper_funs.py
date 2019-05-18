@@ -16,7 +16,7 @@ def f_star(x):
 def init_sim_data(N):
     # Initialize data given N number of samples
     X = np.random.uniform(size = N)
-    epsilon = np.random.normal(scale = 1/5, size = N)
+    epsilon = np.random.normal(scale = 1/np.sqrt(5), size = N)
     y = f_star(X) + epsilon
     return X, y
 

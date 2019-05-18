@@ -8,6 +8,7 @@ Created on Thu Apr  4 12:23:40 2019
 import numpy as np
 from KRR_algorithm import compute_mse
 from sim_study_helper_funs import init_sim_data, init_params
+from sklearn.kernel_ridge import KernelRidge
 import time
 import matplotlib.pyplot as plt
     
@@ -17,10 +18,11 @@ def main():
     # Initialize global variables
     #np.random.seed(521)
     start_time = time.time()
-    NLst = np.logspace(8, 12, num = 5, base = 2).astype(int) # correct one is 8-13
+    NLst = np.logspace(8, 10, num = 3, base = 2).astype(int) # correct one is 8-13
     mLst = np.logspace(0, 3, num = 4, base = 4).astype(int)
-    dist_metric = "sobolev"
-    sim_num = 20
+    #dist_metric = "sobolev"
+    dist_metric = "gaussian"
+    sim_num = 2
     mse_lst = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse with under-regularization
     mse_lst_nr = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse without under-regularization
     for k in range(sim_num):
@@ -28,16 +30,23 @@ def main():
             X, y = init_sim_data(N)
             for j, m in enumerate(mLst):
                 lam, n, params = init_params(N, m)
-                lam_nr = n**(-2/3)
-                params_nr = [-1, lam_nr]
-                mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric)
+                #lam_nr = n**(-2/3)
+                lam_nr = 1e-4
+                params_nr = [1, lam_nr]
+                kr = KernelRidge(kernel='rbf', alpha=10000000, gamma=1)
+                XX = X.reshape(-1,1)
+                kr.fit(XX, y)
+                y_pred = kr.predict(XX)
+                mse_lst[j,i,k] = np.mean((y - y_pred)**2)
+                #mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric, integral = True)
                 mse_lst_nr[j,i,k] = compute_mse(X, y, N, m, params_nr, dist_metric)
             #p.close()
             #p.join()
         print("run time is: ", (time.time() - start_time))
 
-    mse_lst = np.std(mse_lst, axis = 2)
-    mse_lst_nr = np.std(mse_lst_nr, axis = 2)
+    mse_lst = np.mean(mse_lst, axis = 2)
+    mse_lst_nr = np.mean(mse_lst_nr, axis = 2)
+    print(mse_lst)
     print(mse_lst_nr)
     
     # Plot results
