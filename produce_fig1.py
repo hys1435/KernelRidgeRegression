@@ -20,8 +20,8 @@ def main():
     start_time = time.time()
     NLst = np.logspace(8, 10, num = 3, base = 2).astype(int) # correct one is 8-13
     mLst = np.logspace(0, 3, num = 4, base = 4).astype(int)
-    #dist_metric = "sobolev"
-    dist_metric = "gaussian"
+    dist_metric = "sobolev"
+    #dist_metric = "gaussian"
     sim_num = 2
     mse_lst = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse with under-regularization
     mse_lst_nr = np.zeros((mLst.size, NLst.size, sim_num)) # list of mse without under-regularization
@@ -30,15 +30,15 @@ def main():
             X, y = init_sim_data(N)
             for j, m in enumerate(mLst):
                 lam, n, params = init_params(N, m)
-                #lam_nr = n**(-2/3)
-                lam_nr = 1e-4
+                lam_nr = n**(-2/3)
+                #lam_nr = 1e-4
                 params_nr = [1, lam_nr]
-                kr = KernelRidge(kernel='rbf', alpha=10000000, gamma=1)
-                XX = X.reshape(-1,1)
-                kr.fit(XX, y)
-                y_pred = kr.predict(XX)
-                mse_lst[j,i,k] = np.mean((y - y_pred)**2)
-                #mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric, integral = True)
+                #kr = KernelRidge(kernel='rbf', alpha=10000000, gamma=1)
+                #XX = X.reshape(-1,1)
+                #kr.fit(XX, y)
+                #y_pred = kr.predict(XX)
+                #mse_lst[j,i,k] = np.mean((y - y_pred)**2)
+                mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric, integral = True)
                 mse_lst_nr[j,i,k] = compute_mse(X, y, N, m, params_nr, dist_metric)
             #p.close()
             #p.join()

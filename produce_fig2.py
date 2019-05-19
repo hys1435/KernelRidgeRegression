@@ -17,7 +17,7 @@ def main():
     #np.random.seed(521)
     start_time = time.time()
     NLst = np.logspace(8, 11, num = 4, base = 2).astype(int) # correct one is 8-13
-    sim_num = 20
+    sim_num = 10
     dist_metric = "sobolev"
     mse_lst = list()
     logmnLst = list()
@@ -32,7 +32,6 @@ def main():
                 lam, n, params = init_params(N, m)
                 mse[j, k] = compute_mse(X, y, N, m, params, dist_metric)
             print("run time is: ", (time.time() - start_time))
-        mse_std = np.std(mse, axis = 1)/N # compute the standard error
         mse_mean = np.mean(mse, axis = 1)
         mse_lst.append(mse_mean)
         logmnLst.append(logmn)
