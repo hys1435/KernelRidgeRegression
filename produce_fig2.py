@@ -16,8 +16,8 @@ def main():
     # Initialize global variables
     #np.random.seed(521)
     start_time = time.time()
-    NLst = np.logspace(8, 11, num = 4, base = 2).astype(int) # correct one is 8-13
-    sim_num = 10
+    NLst = np.logspace(8, 13, num = 6, base = 2).astype(int) # correct one is 8-13
+    sim_num = 20
     dist_metric = "sobolev"
     mse_lst = list()
     logmnLst = list()
@@ -31,21 +31,20 @@ def main():
             for j, m in enumerate(mLst):
                 lam, n, params = init_params(N, m)
                 mse[j, k] = compute_mse(X, y, N, m, params, dist_metric)
-            print("run time is: ", (time.time() - start_time))
+        print("run time is: ", (time.time() - start_time))
         mse_mean = np.mean(mse, axis = 1)
         mse_lst.append(mse_mean)
         logmnLst.append(logmn)
     print(mse_lst)
 
     # Plot results
-    ax = plt.subplot(2,1,1)
-    cols = ['red', 'blue', 'yellow', 'orange']
-    markers = ['o', '^', 's', 'd']
-    plt.xticks(NLst)
+    fig, ax = plt.subplots()
+    cols = ['red', 'blue', 'yellow', 'orange', 'green', 'purple']
+    markers = ['o', '^', 's', 'd', '*', 'P']
     ax.set_yscale('log')
     for i, (logmn, mse) in enumerate(zip(mse_lst, logmnLst)):
         ax.plot(mse, logmn, c=cols[i], marker=markers[i],label='N={}'.format(2**(i+8)))
-    plt.legend(loc='upper right')
+    plt.legend(loc='upper left')
     plt.xlabel("log(# of partitions)/log(# of samples)")
     plt.ylabel("Mean square error")
     #plt.title("Kernel Ridge Regression without under-regularization")
