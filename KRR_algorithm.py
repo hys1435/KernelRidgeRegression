@@ -9,7 +9,6 @@ Created on Mon Apr 22 21:48:30 2019
 # Kernel Ridge Regression Algorithm reproducing results from zhang15d paper
 
 import numpy as np
-import random
 
 def gaussianRBF(u, v, params):
     sigma = params[0]
@@ -62,11 +61,6 @@ def split_into_m_parts(X, m):
     for i in range(m):
         res[i] = X[i*n:(i+1)*n]
     return res
-
-def split_randomly_into_m_parts(X, m):
-    ind = [x for x in range(m)]
-    random.shuffle(ind)
-    
     
 def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     # compute the prediction of y using kernel coefficients alpha
