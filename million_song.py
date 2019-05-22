@@ -99,8 +99,7 @@ def main():
     
     mse_lst = np.zeros(len(mLst))
     for i, m in enumerate(mLst):
-        p = Pool(m)
-        mse_lst[i] = compute_mse(X_train, y_train, N, m, p, params, dist_metric,
+        mse_lst[i] = compute_mse(X_train, y_train, N, m, params, dist_metric,
                     X_test, y_test, real = True)
         #feature_map_nystroem = Nystroem(gamma = 1/sigma**2, n_components = r)
         #K_Nys = feature_map_nystroem.fit_transform(data)
