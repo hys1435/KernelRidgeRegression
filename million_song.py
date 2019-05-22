@@ -9,10 +9,9 @@ Created on Mon Apr 22 21:49:15 2019
 # The subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
 
 import pandas as pd
-from KRR_algorithm import compute_gram_mat, compute_mse, compute_coeffs_from_K, predict
-from multiprocessing import Pool
+from KRR_algorithm import compute_gram_mat, compute_mse, compute_coeffs_from_K
 import time
-
+import matplotlib.pyplot as plt
 import numpy as np
 #%%
 
@@ -61,56 +60,105 @@ def Nystrom_sampling(X, rank, params, dist_metric):
 def rand_fourier_features(X, D, sigma):
     # d: dimension of data; D: dimension of samples
     d = X.shape[1]
-    w = np.random.multivariate_normal(mean = np.zeros(d), cov = sigma**2 * np.eye(d), size = D)
-    print(w.shape)
+    w = np.random.multivariate_normal(mean = np.zeros(d), cov = 1/sigma**2 * np.eye(d), size = D)
+    #print(w.shape)
     b = np.random.uniform(low = 0, high = 2*np.pi, size = D)
-    print(b.shape)
-    print(X.shape)
-    z = np.sqrt(2/D) * np.cos(np.matmul(w, np.transpose(X)) + b)
+    #print(b.shape)
+    #print(X.shape)
+    z = np.sqrt(2/D) * np.cos(np.matmul(w, np.transpose(X)).transpose() + b)
     return z
 
 def main():
-    start_time = time.time()
-    #N = 463715
+    N = 463715
     #X_train, y_train, X_test, y_test = processData()
 
-    N = 200 # small sample test
-    mLst = [4, 8]
-    X_train = X[0:N]
-    X_test = X[463715:(463715+int(N/10))]
-    y_train = Y[0:N]
-    y_test = Y[463715:(463715+int(N/10))]
+    #N = 200 # small sample test
+    #mLst = [4, 8]
+    #DLst = [2000, 3000]
+    #rLst = [1000, 2000]
+    mLst = np.array([32, 38, 48, 64, 96, 128, 256])
+    DLst = np.array([2000, 3000, 5000, 7000, 8500, 10000])
+    rLst = np.array([1000, 2000, 3000, 4000, 5000, 6000])
+    #X_train = X[0:N]
+    #X_test = X[463715:(463715+int(N/10))]
+    #y_train = Y[0:N]
+    #y_test = Y[463715:(463715+int(N/10))]
 
     dist_metric = "gaussian"
-    #mLst = [32, 38, 48, 64, 96, 128, 256]
     sigma = 6 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
     lam = N**(-1)
     params = [sigma, lam]
-    r = 1 * 10**1
-    D = 2000
-    K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
-    print("K_Nys: ", K_Nys)
-    K = compute_gram_mat(X_train, X_train, params, dist_metric)
-    print("K: ", K)
-    K_ran = rand_fourier_features(X_train, D, sigma)
-    print("K_ran: ", K_ran)
-    print("Difference: ", np.linalg.norm(K-K_Nys))
-    print("Difference: ", np.linalg.norm(K-K_ran))
     
-    mse_lst = np.zeros(len(mLst))
-    for i, m in enumerate(mLst):
-        mse_lst[i] = compute_mse(X_train, y_train, N, m, params, dist_metric,
-                    X_test, y_test, real = True)
-        #feature_map_nystroem = Nystroem(gamma = 1/sigma**2, n_components = r)
-        #K_Nys = feature_map_nystroem.fit_transform(data)
-        #alpha = compute_coeffs_from_K(K_Nys, y_train, params)
-        #y_pred = predict(X, X_test, alpha, m, params, dist_metric)
-        #mse = np.mean((y_test - y_pred)**2)
-        print("run time is: ", (time.time() - start_time))
-        print(mse_lst[i])
-        #print("Nystrom: ", mse)
-    print(mse_lst)
+    sim_num = 10
+    run_time_KRR = np.zeros(len(mLst))
+    run_time_Nys = np.zeros(len(rLst))
+    run_time_ran = np.zeros(len(DLst))
+    mse_lst_KRR = np.zeros((len(mLst), sim_num))
+    mse_lst_Nys = np.zeros((len(rLst), sim_num))
+    mse_lst_ran = np.zeros((len(DLst), sim_num))
+    
+    """
+    K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
+    #print("K_Nys: ", K_Nys)
+    K = compute_gram_mat(X_train, X_train, params, dist_metric)
+    #print("K: ", K)
+    z_ran = rand_fourier_features(X_train, D, sigma)
+    K_ran = np.matmul(z_ran, z_ran.transpose())
+    #print("K_ran: ", K_ran)
+    #print("Difference: ", np.linalg.norm(K-K_Nys))
+    #print("Difference: ", np.linalg.norm(K-K_ran))
+    """
+    for k in range(sim_num):
+        
+        start_time = time.time()
+        for i, m in enumerate(mLst):
+            mse_lst_KRR[i,k] = compute_mse(X_train, y_train, N, m, params, dist_metric,
+                        X_test, y_test, real = True)
+        run_time_KRR[i] = time.time() - start_time
+        
+        start_time = time.time()
+        for i, r in enumerate(rLst):
+            K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
+            alpha = compute_coeffs_from_K(K_Nys, y_train, params)
+            K = compute_gram_mat(X_test, X_train, params, dist_metric)
+            y_pred = np.dot(K, alpha)
+            mse_lst_Nys[i,k] = np.mean((y_test - y_pred)**2)
+        run_time_Nys[i] = time.time() - start_time
+        
+        start_time = time.time()
+        for i, D in enumerate(DLst):
+            z_ran = rand_fourier_features(X_train, D, sigma)
+            K_ran = np.matmul(z_ran, z_ran.transpose())
+            alpha = compute_coeffs_from_K(K_ran, y_train, params)
+            K = compute_gram_mat(X_test, X_train, params, dist_metric)
+            y_pred = np.dot(K, alpha)
+            mse_lst_ran[i,k] = np.mean((y_test - y_pred)**2)
+        run_time_ran[i] = time.time() - start_time
+        print("{}th iteration Done".format(k))
 
+    mse_lst_KRR_err = np.std(mse_lst_KRR, axis = 1)
+    mse_lst_KRR = np.mean(mse_lst_KRR, axis = 1)
+    mse_lst_Nys_err = np.std(mse_lst_Nys, axis = 1)
+    mse_lst_Nys = np.mean(mse_lst_Nys, axis = 1)
+    mse_lst_ran_err = np.std(mse_lst_ran, axis = 1)
+    mse_lst_ran = np.mean(mse_lst_ran, axis = 1)
+    print(mse_lst_KRR)
+    print(mse_lst_Nys)
+    print(mse_lst_ran)
+    
+    # Plot results
+    fig, ax = plt.subplots()
+    cols = ['red', 'blue', 'green']
+    markers = ['o', '^', 's']
+    ax.errorbar(run_time_KRR, mse_lst_KRR, yerr = mse_lst_KRR_err, c=cols[0], marker=markers[0], label='Fast-KRR')
+    ax.errorbar(run_time_Nys, mse_lst_Nys, yerr = mse_lst_Nys_err, c=cols[1], marker=markers[1], label='Nystrom Sampling')
+    ax.errorbar(run_time_ran, mse_lst_ran, yerr = mse_lst_ran_err, c=cols[2], marker=markers[2], label='Random Feature Approx.')
+    plt.legend(loc='upper right')
+    plt.xlabel("Training runtime")
+    plt.ylabel("Mean square error")
+    #plt.title("Kernel Ridge Regression without under-regularization")
+
+    plt.show()
 if __name__ == '__main__':
      main()
 

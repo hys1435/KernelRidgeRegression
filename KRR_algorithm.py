@@ -46,8 +46,6 @@ def compute_coeffs_from_K(K, y, params):
     # equantion (37) of the original paper
     lam = params[-1]
     alpha = np.linalg.solve(K + lam * y.size * np.eye(K.shape[0]), y)
-    #K_sudinv = np.linalg.inv(K + lam * y.size * np.eye(K.shape[0]))
-    #alpha = np.dot(K_sudinv, y)
     return alpha
 
 def split_into_m_parts(X, m):

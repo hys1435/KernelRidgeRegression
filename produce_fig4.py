@@ -20,8 +20,9 @@ def main():
     y_train = np.array(y_train)
     y_test = np.array(y_test)
     
-    mLst = np.array([32, 38])
+    
     """
+    mLst = np.array([32, 38])
     N = 512 # small sample test
     X_train = np.array(X_train[0:N])
     X_test = np.array(X_test[0:N])
