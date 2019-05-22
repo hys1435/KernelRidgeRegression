@@ -2,32 +2,51 @@ import numpy as np
 from KRR_algorithm import compute_mse, compute_mse_no_avg
 from sim_study_helper_funs import init_params
 from process_data import processData
+from random import shuffle
 import time
 import matplotlib.pyplot as plt
 
 def main():
     start_time = time.time()
-    N = 463715
+    N_train = 463715
+    N_test = 51630
+    
     mLst = np.array([32, 38, 48, 64, 96, 128, 256])
     
     X_train, y_train, X_test, y_test = processData()
+    
+    X_train = np.array(X_train)
+    X_test = np.array(X_test)
+    y_train = np.array(y_train)
+    y_test = np.array(y_test)
+    
+    mLst = np.array([32, 38])
+    """
     N = 512 # small sample test
-    mLst = np.array([8, 32])
-    X_train = X_train[0:N]
-    X_test = X_test[0:N]
-    y_train = y_train[0:N]
-    y_test = y_test[0:N]
+    X_train = np.array(X_train[0:N])
+    X_test = np.array(X_test[0:N])
+    y_train = np.array(y_train[0:N])
+    y_test = np.array(y_test[0:N])
+    """
     
     dist_metric = "gaussian"
-    sim_num = 20
+    sim_num = 2
     mse_lst = np.zeros((mLst.size, sim_num)) # list of mse with under-regularization
     mse_lst_na = np.zeros((mLst.size, sim_num)) # list of mse with under-regularization
     for k in range(sim_num):
+        ind_1 = [x for x in range(N_train)]
+        shuffle(ind_1)
+        ind_2 = [x for x in range(N_test)]
+        shuffle(ind_2)
+        np.take(X_train, ind_1, axis = 0, out = X_train)
+        np.take(X_test, ind_2, axis = 0, out = X_test)
+        np.take(y_train, ind_1, axis = 0, out = y_train)
+        np.take(y_test, ind_2, axis = 0, out = y_test)
         for j, m in enumerate(mLst):
-            lam, n, params = init_params(N, m)
-            mse_lst[j,k] = compute_mse(X_train, y_train, N, m, params, dist_metric,
+            lam, n, params = init_params(N_train, m)
+            mse_lst[j,k] = compute_mse(X_train, y_train, N_train, m, params, dist_metric,
                     X_test, y_test, real = True)
-            mse_lst_na[j,k] = compute_mse_no_avg(X_train, y_train, N, m, params, dist_metric,
+            mse_lst_na[j,k] = compute_mse_no_avg(X_train, y_train, N_train, m, params, dist_metric,
                     X_test, y_test, real = True)
         print("run time is: ", (time.time() - start_time))
 
