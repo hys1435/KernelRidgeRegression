@@ -63,7 +63,7 @@ def split_into_m_parts(X, m):
 def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     # compute the prediction of y using kernel coefficients alpha
     K = compute_gram_mat(X_test, X_train, params, dist_metric)
-    y_pred = 1/m * np.dot(K, alpha)
+    y_pred = np.dot(K, alpha)
     if (output):
         return y_pred, K, alpha
     return y_pred
@@ -72,24 +72,28 @@ def compute_mse(X, y, N, m, params, dist_metric,
                 X_test = None, y_test = None, real = False, integral = False):
     # Key function to compute the mse, real is the parameter indicating if it's 
     # simulation study or real data
-    alpha = np.zeros(N)
-    n = int(N / m)
+    # n = int(N / m)
+    y_pred_lst = np.zeros((m, N))
     X_split = split_into_m_parts(X, m)
     y_split = split_into_m_parts(y, m)
     for k, (XX, yy) in enumerate(zip(X_split, y_split)):
-        alpha[k*n:(k+1)*n] = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
-    if (real):
-        y_pred = predict(X, X_test, alpha, m, params, dist_metric)
+        alpha = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
+        if (real):
+            y_pred_lst[k] = predict(XX, X_test, alpha, m, params, dist_metric)
+        elif (integral): # integral not working right now -> due to the size of y_pred_lst not match with X_seq
+            X_seq = np.linspace(start = 1e-4, stop = 1, num = 200)
+            y_pred_lst[k, 0:200] = predict(XX, X_seq, alpha, m, params, dist_metric)
+        else:
+            y_pred_lst[k] = predict(XX, X, alpha, m, params, dist_metric)
+    if (integral):
+        y_test = f_star(X_seq)
+        y_pred = np.mean(y_pred_lst[0:m, 0:200], axis = 0)
         mse = np.mean((y_test - y_pred)**2)
-    elif (integral):
-        X_seq = np.linspace(start = 1e-4, stop = 1, num = 1000)
-        y_pred = predict(X, X_seq, alpha, m, params, dist_metric)
-        y_star = f_star(X_seq)
-        mse = np.mean((y_star - y_pred)**2)
-    else:
-        y_pred = predict(X, X, alpha, m, params, dist_metric)
-        y_star = f_star(X)
-        mse = np.mean((y_star - y_pred)**2)
+        return mse
+    elif (not real):
+        y_test = f_star(X)
+    y_pred = np.mean(y_pred_lst, axis = 0)
+    mse = np.mean((y_test - y_pred)**2)
     return mse
 
 def compute_mse_no_avg(X, y, N, m, params, dist_metric, 
@@ -100,7 +104,7 @@ def compute_mse_no_avg(X, y, N, m, params, dist_metric,
     X1 = X[0:n]
     y1 = y[0:n]
     alpha = compute_kernel_ridge_coeffs(X1, y1, params, dist_metric)
-    y_pred = m * predict(X1, X_test, alpha, m, params, dist_metric) # multiply by m to remove averaging
+    y_pred = predict(X1, X_test, alpha, m, params, dist_metric) # multiply by m to remove averaging
     mse = np.mean((y_test - y_pred)**2)
     return mse
     

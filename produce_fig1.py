@@ -45,7 +45,7 @@ def main():
                 #kr.fit(XX, y)
                 #y_pred = kr.predict(XX)
                 #mse_lst[j,i,k] = np.mean((y - y_pred)**2)
-                mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric, integral = True)
+                mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric)
                 mse_lst_nr[j,i,k] = compute_mse(X, y, N, m, params_nr, dist_metric)
             #p.close()
             #p.join()
