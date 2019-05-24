@@ -17,8 +17,8 @@ def main():
     mLst = np.array([1, 16, 64, 256, 1024])
     dist_metric = "sobolev"
     sim_num = 10
-    mse_lst = np.zeros((mLst.size, NLst.size, sim_num))
-    run_time_lst = np.zeros((mLst.size, NLst.size, sim_num))
+    mse_lst = np.zeros((NLst.size, mLst.size, sim_num))
+    run_time_lst = np.zeros((NLst.size, mLst.size, sim_num))
     for k in range(sim_num):
         for i, N in enumerate(NLst):
             X, y = init_sim_data(N)
@@ -28,8 +28,8 @@ def main():
                 else:
                     start_time = time.time()
                     lam, n, params = init_params(N, m)
-                    mse_lst[j,i,k] = compute_mse(X, y, N, m, params, dist_metric)
-                    run_time_lst[j,i,k] = time.time() - start_time
+                    mse_lst[i,j,k] = compute_mse(X, y, N, m, params, dist_metric)
+                    run_time_lst[i,j,k] = time.time() - start_time
         print("run time is: ", (time.time() - start_time))
 
     mse_lst = np.mean(mse_lst, axis = 2)

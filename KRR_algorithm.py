@@ -63,6 +63,8 @@ def split_into_m_parts(X, m):
 def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     # compute the prediction of y using kernel coefficients alpha
     K = compute_gram_mat(X_test, X_train, params, dist_metric)
+    print("K: ", K.shape)
+    print("alpha: ", alpha.shape)
     y_pred = np.dot(K, alpha)
     if (output):
         return y_pred, K, alpha
@@ -73,23 +75,27 @@ def compute_mse(X, y, N, m, params, dist_metric,
     # Key function to compute the mse, real is the parameter indicating if it's 
     # simulation study or real data
     # n = int(N / m)
-    y_pred_lst = np.zeros((m, N))
+    if (real): 
+        y_pred_lst = np.zeros((m, X_test.shape[0]))
+    elif (integral):
+        y_pred_lst = np.zeros((m, 200))
+    else:
+        y_pred_lst = np.zeros((m, N))
     X_split = split_into_m_parts(X, m)
     y_split = split_into_m_parts(y, m)
     for k, (XX, yy) in enumerate(zip(X_split, y_split)):
         alpha = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
         if (real):
+            print("XX:", XX.shape)
+            print("X: ", X_test.shape)
             y_pred_lst[k] = predict(XX, X_test, alpha, m, params, dist_metric)
         elif (integral): # integral not working right now -> due to the size of y_pred_lst not match with X_seq
             X_seq = np.linspace(start = 1e-4, stop = 1, num = 200)
-            y_pred_lst[k, 0:200] = predict(XX, X_seq, alpha, m, params, dist_metric)
+            y_pred_lst[k] = predict(XX, X_seq, alpha, m, params, dist_metric)
         else:
             y_pred_lst[k] = predict(XX, X, alpha, m, params, dist_metric)
     if (integral):
         y_test = f_star(X_seq)
-        y_pred = np.mean(y_pred_lst[0:m, 0:200], axis = 0)
-        mse = np.mean((y_test - y_pred)**2)
-        return mse
     elif (not real):
         y_test = f_star(X)
     y_pred = np.mean(y_pred_lst, axis = 0)
