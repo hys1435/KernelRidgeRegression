@@ -31,7 +31,7 @@ def main():
     """
     
     dist_metric = "gaussian"
-    sim_num = 2
+    sim_num = 10
     mse_lst = np.zeros((mLst.size, sim_num)) # list of mse with under-regularization
     mse_lst_na = np.zeros((mLst.size, sim_num)) # list of mse with under-regularization
     for k in range(sim_num):

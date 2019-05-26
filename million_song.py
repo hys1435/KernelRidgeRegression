@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 22 21:49:15 2019
+Created on Sun May 26 10:49:43 2019
 
-@author: Zhaoqi Li
+@author: zli9
 """
 
 # The subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
@@ -11,7 +11,8 @@ Created on Mon Apr 22 21:49:15 2019
 import pandas as pd
 from KRR_algorithm import compute_gram_mat, compute_mse, compute_coeffs_from_K
 import time
-import matplotlib.pyplot as plt
+from random import shuffle
+# import matplotlib.pyplot as plt
 import numpy as np
 #%%
 
@@ -51,10 +52,22 @@ print("------ finished read data ------")
 
 # Different low-rank approximation methods for the kernel matrix
 
+def compute_pseudoinv(K):
+    # compute pseudoinverse of K using svd
+    U, D, VT = np.linalg.svd(K, full_matrices=False)
+    #print(U)
+    #print(D)
+    #print(VT)
+    K_pseudoinv = VT.transpose() @ np.linalg.inv(np.diag(D)) @ U.transpose()
+    return K_pseudoinv
+
 def Nystrom_sampling(X, rank, params, dist_metric):
     Kmn = compute_gram_mat(X, X[0:rank], params, dist_metric)
     Kmm = compute_gram_mat(X[0:rank], X[0:rank], params, dist_metric)
-    Kmm_inv = np.linalg.inv(Kmm)
+    #print("Kmm: ", Kmm)
+    Kmm_inv = compute_pseudoinv(Kmm)
+    #Kmm_inv = np.linalg.inv(Kmm)
+    #print("Kmm_inv: ", Kmm_inv)
     return np.matmul(np.matmul(Kmn, Kmm_inv),np.transpose(Kmn))
 
 def rand_fourier_features(X, D, sigma):
@@ -69,26 +82,28 @@ def rand_fourier_features(X, D, sigma):
     return z
 
 def main():
-    N = 463715
+    N_train = 463715
+    N_test = 51630
     #X_train, y_train, X_test, y_test = processData()
 
-    #N = 200 # small sample test
-    #mLst = [4, 8]
+    #N_train = 2000 # small sample test
+    #N_test = int(N_train/10)
+    #mLst = [32, 38, 48]
     #DLst = [2000, 3000]
-    #rLst = [1000, 2000]
+    #rLst = [1000, 2000, 3000]
     mLst = np.array([32, 38, 48, 64, 96, 128, 256])
     DLst = np.array([2000, 3000, 5000, 7000, 8500, 10000])
     rLst = np.array([1000, 2000, 3000, 4000, 5000, 6000])
-    #X_train = X[0:N]
-    #X_test = X[463715:(463715+int(N/10))]
-    #y_train = Y[0:N]
-    #y_test = Y[463715:(463715+int(N/10))]
+    #X_train = X[0:N_train]
+    #X_test = X[463715:(463715+int(N_train/10))]
+    #y_train = Y[0:N_train]
+    #y_test = Y[463715:(463715+int(N_train/10))]
 
     dist_metric = "gaussian"
     sigma = 6 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
-    lam = N**(-1)
+    lam = N_train**(-1)
     params = [sigma, lam]
-    
+
     sim_num = 10
     run_time_KRR = np.zeros(len(mLst))
     run_time_Nys = np.zeros(len(rLst))
@@ -96,7 +111,7 @@ def main():
     mse_lst_KRR = np.zeros((len(mLst), sim_num))
     mse_lst_Nys = np.zeros((len(rLst), sim_num))
     mse_lst_ran = np.zeros((len(DLst), sim_num))
-    
+
     """
     K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
     #print("K_Nys: ", K_Nys)
@@ -109,22 +124,32 @@ def main():
     #print("Difference: ", np.linalg.norm(K-K_ran))
     """
     for k in range(sim_num):
-        
+        ind_1 = [x for x in range(N_train)]
+        shuffle(ind_1)
+        ind_2 = [x for x in range(N_test)]
+        shuffle(ind_2)
+        np.take(X_train, ind_1, axis = 0, out = X_train)
+        np.take(X_test, ind_2, axis = 0, out = X_test)
+        np.take(y_train, ind_1, axis = 0, out = y_train)
+        np.take(y_test, ind_2, axis = 0, out = y_test)
         start_time = time.time()
         for i, m in enumerate(mLst):
-            mse_lst_KRR[i,k] = compute_mse(X_train, y_train, N, m, params, dist_metric,
+            mse_lst_KRR[i,k] = compute_mse(X_train, y_train, N_train, m, params, dist_metric,
                         X_test, y_test, real = True)
+            print("mse_KRR: {}, i={}, k={}: ".format(mse_lst_KRR[i,k], i, k))
         run_time_KRR[i] = time.time() - start_time
-        
+        """
         start_time = time.time()
         for i, r in enumerate(rLst):
             K_Nys = Nystrom_sampling(X_train, r, params, dist_metric)
+            #print("K_Nys: ", K_Nys)
             alpha = compute_coeffs_from_K(K_Nys, y_train, params)
             K = compute_gram_mat(X_test, X_train, params, dist_metric)
             y_pred = np.dot(K, alpha)
             mse_lst_Nys[i,k] = np.mean((y_test - y_pred)**2)
+            print("mse_Nys: {}, i={}, k={}: ".format(mse_lst_Nys[i,k], i, k))
         run_time_Nys[i] = time.time() - start_time
-        
+        """
         start_time = time.time()
         for i, D in enumerate(DLst):
             z_ran = rand_fourier_features(X_train, D, sigma)
@@ -133,6 +158,7 @@ def main():
             K = compute_gram_mat(X_test, X_train, params, dist_metric)
             y_pred = np.dot(K, alpha)
             mse_lst_ran[i,k] = np.mean((y_test - y_pred)**2)
+            print("mse_ran: {}, i={}, k={}: ".format(mse_lst_ran[i,k], i, k))
         run_time_ran[i] = time.time() - start_time
         print("{}th iteration Done".format(k))
 
@@ -142,10 +168,21 @@ def main():
     mse_lst_Nys = np.mean(mse_lst_Nys, axis = 1)
     mse_lst_ran_err = np.std(mse_lst_ran, axis = 1)
     mse_lst_ran = np.mean(mse_lst_ran, axis = 1)
-    print(mse_lst_KRR)
-    print(mse_lst_Nys)
-    print(mse_lst_ran)
-    
+
+    np.savetxt("mse_lst_KRR.out", mse_lst_KRR)
+    np.savetxt("mse_lst_Nys.out", mse_lst_Nys)
+    np.savetxt("mse_lst_ran.out", mse_lst_ran)
+    np.savetxt("mse_lst_KRR_err.out", mse_lst_KRR_err)
+    np.savetxt("mse_lst_Nys_err.out", mse_lst_Nys_err)
+    np.savetxt("mse_lst_ran_err.out", mse_lst_ran_err)
+    print("mse_lst_KRR: ", mse_lst_KRR)
+    print("mse_lst_Nys: ", mse_lst_Nys)
+    print("mse_lst_ran: ", mse_lst_ran)
+    print("mse_lst_KRR_err: ", mse_lst_KRR_err)
+    print("mse_lst_Nys_err: ", mse_lst_Nys_err)
+    print("mse_lst_ran_err: ", mse_lst_ran_err)
+
+"""    
     # Plot results
     fig, ax = plt.subplots()
     cols = ['red', 'blue', 'green']
@@ -159,6 +196,7 @@ def main():
     #plt.title("Kernel Ridge Regression without under-regularization")
 
     plt.show()
+"""
+
 if __name__ == '__main__':
      main()
-

@@ -63,8 +63,8 @@ def split_into_m_parts(X, m):
 def predict(X_train, X_test, alpha, m, params, dist_metric, output = False):
     # compute the prediction of y using kernel coefficients alpha
     K = compute_gram_mat(X_test, X_train, params, dist_metric)
-    print("K: ", K.shape)
-    print("alpha: ", alpha.shape)
+    #print("K: ", K.shape)
+    #print("alpha: ", alpha.shape)
     y_pred = np.dot(K, alpha)
     if (output):
         return y_pred, K, alpha
@@ -86,8 +86,8 @@ def compute_mse(X, y, N, m, params, dist_metric,
     for k, (XX, yy) in enumerate(zip(X_split, y_split)):
         alpha = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
         if (real):
-            print("XX:", XX.shape)
-            print("X: ", X_test.shape)
+            #print("XX:", XX.shape)
+            #print("X: ", X_test.shape)
             y_pred_lst[k] = predict(XX, X_test, alpha, m, params, dist_metric)
         elif (integral): # integral not working right now -> due to the size of y_pred_lst not match with X_seq
             X_seq = np.linspace(start = 1e-4, stop = 1, num = 200)
