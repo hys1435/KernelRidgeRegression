@@ -21,14 +21,15 @@ def main():
     y_test = np.array(y_test)
     
     
-    """
-    mLst = np.array([32, 38])
-    N = 512 # small sample test
-    X_train = np.array(X_train[0:N])
-    X_test = np.array(X_test[0:N])
-    y_train = np.array(y_train[0:N])
-    y_test = np.array(y_test[0:N])
-    """
+    
+    # mLst = np.array([32, 38])
+    N_train = 2048 # small sample test
+    N_test = int(N_train/8)
+    X_train = np.array(X_train[0:N_train])
+    X_test = np.array(X_test[0:N_test])
+    y_train = np.array(y_train[0:N_train])
+    y_test = np.array(y_test[0:N_test])
+    
     
     dist_metric = "gaussian"
     sim_num = 10
@@ -44,10 +45,14 @@ def main():
         np.take(y_train, ind_1, axis = 0, out = y_train)
         np.take(y_test, ind_2, axis = 0, out = y_test)
         for j, m in enumerate(mLst):
-            lam, n, params = init_params(N_train, m)
+            sigma = 32 * np.sqrt(2) # sqrt(2) is for the version the author uses here: 2*sigma**2
+            lam = N_train**(-1)
+            lam_na = lam * m
+            params = [sigma, lam]
+            params_na = [sigma, lam_na]
             mse_lst[j,k] = compute_mse(X_train, y_train, N_train, m, params, dist_metric,
                     X_test, y_test, real = True)
-            mse_lst_na[j,k] = compute_mse_no_avg(X_train, y_train, N_train, m, params, dist_metric,
+            mse_lst_na[j,k] = compute_mse_no_avg(X_train, y_train, N_train, m, params_na, dist_metric,
                     X_test, y_test, real = True)
         print("run time is: ", (time.time() - start_time))
 

@@ -86,10 +86,8 @@ def compute_mse(X, y, N, m, params, dist_metric,
     for k, (XX, yy) in enumerate(zip(X_split, y_split)):
         alpha = compute_kernel_ridge_coeffs(XX, yy, params, dist_metric)
         if (real):
-            #print("XX:", XX.shape)
-            #print("X: ", X_test.shape)
             y_pred_lst[k] = predict(XX, X_test, alpha, m, params, dist_metric)
-        elif (integral): # integral not working right now -> due to the size of y_pred_lst not match with X_seq
+        elif (integral): 
             X_seq = np.linspace(start = 1e-4, stop = 1, num = 200)
             y_pred_lst[k] = predict(XX, X_seq, alpha, m, params, dist_metric)
         else:

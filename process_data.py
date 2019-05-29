@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn import preprocessing
 
 # Process the subset of million song dataset is obtained from https://samyzaf.com/ML/song_year/song_year.html
 
@@ -15,12 +16,11 @@ def processData():
 
 	X = data.ix[:,1:].as_matrix()  # this is the 90 columns without the year
 	Y = data.ix[:,0].as_matrix()   # this is the year column
-
-	# data normalizations (scaling down all values to the interval [0,1])
+    
 	# The years 1922-2011 are scaled down to integers [0,1,2,..., 89]
-	a = X.min()
-	b = X.max()
-	X = (X - a) / (b - a)  # all values now between 0 and 1 !
+	#a = X.min()
+	#b = X.max()
+	X = preprocessing.scale(X)  # all values now between 0 and 1 !
 	Y = Y - Y.min()        # The years 1922-2011 are mapped to 0-89
 
 	# Training data set
