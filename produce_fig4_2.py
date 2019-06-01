@@ -66,7 +66,7 @@ X_test_l = np.array(X_test_l)
 y_train_l = np.array(y_train_l)
 y_test_l = np.array(y_test_l)
 
-N_train_lst = np.array([1024, 2048, 4096, 5120, 6144, 7168, 8192, 10240])
+N_train_lst = np.array([1024, 4096])
 #N_train_lst = np.array([2048, 4096])
 for N_train in N_train_lst: 
     N_train = int(N_train)
@@ -106,8 +106,8 @@ for N_train in N_train_lst:
                 y_pred_lst[i] = K_test @ alpha
             y_pred = np.mean(y_pred_lst, axis = 0)
             mse_lst[j,k] = np.mean((y_test - y_pred)**2)
-            X_train_1 = X_train[0:n]
-            y_train_1 = y_train[0:n]
+            X_train_1 = X_train[(6*n):(7*n)]
+            y_train_1 = y_train[(6*n):(7*n)]
             K = compute_gram_mat(X_train_1, X_train_1, sigma)
             alpha = np.linalg.solve(K + lam * m * n * np.eye(n), yy)
             K_test = compute_gram_mat(X_test, X_train_1, sigma)
@@ -125,7 +125,7 @@ for N_train in N_train_lst:
     print(mse_lst_err)
     print(mse_lst_na)
     print(mse_lst_na_err)
-    
+
     # Plot results
     fig, ax = plt.subplots()
     cols = ['red', 'blue']
@@ -133,11 +133,14 @@ for N_train in N_train_lst:
     ax.set_xscale('log')
     ax.set_yscale('log')
     plt.xticks(mLst)
+    plt.yticks([80, 100, 120, 140])
     ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     ax.get_xaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
+    ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.get_yaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
     ax.errorbar(mLst, mse_lst, yerr = mse_lst_err, c=cols[0], marker=markers[0],label='Fast-KRR',capsize=6)
     ax.errorbar(mLst, mse_lst_na, yerr = mse_lst_na_err, c=cols[1], marker=markers[1],label='KRR with 1/m data',capsize=6) # seeds: 111, 147
     plt.legend(loc='upper left')
-    plt.xlabel("log(# of partitions)/log(# of samples)")
+    plt.xlabel("Number of partitions (m)")
     plt.ylabel("Mean square error")
     plt.savefig("N={}".format(N_train))

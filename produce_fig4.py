@@ -61,11 +61,15 @@ def main():
     mse_lst_na_err = np.std(mse_lst_na, axis = 1)
     mse_lst_na = np.mean(mse_lst_na, axis = 1)
     
+    np.savetxt("mse_lst.out", mse_lst)
+    np.savetxt("mse_lst_err.out", mse_lst_err)
+    np.savetxt("mse_lst_na.out", mse_lst_na)
+    np.savetxt("mse_lst_na_err.out", mse_lst_na_err)
     print(mse_lst)
     print(mse_lst_err)
     print(mse_lst_na)
     print(mse_lst_na_err)
-    
+"""
     # Plot results
     fig, ax = plt.subplots()
     cols = ['red', 'blue']
@@ -76,6 +80,6 @@ def main():
     plt.legend(loc='upper left')
     plt.xlabel("log(# of partitions)/log(# of samples)")
     plt.ylabel("Mean square error")
-
+"""
 if __name__ == '__main__':
      main()

@@ -10,14 +10,13 @@ import numpy as np
 import pandas as pd
 #from KRR_algorithm import compute_mse, compute_mse_no_avg
 #from sim_study_helper_funs import init_params
-#from process_data import processData
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.model_selection import cross_validate
 from sklearn import preprocessing
 from random import shuffle
 import time
-#from sim_study_helper_funs import init_sim_data
+import matplotlib.pyplot as plt
     
 features = ['year', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12', 't13', 't14', 't15', 't16', 't17', 't18', 't1 9', 't20', 't21', 't22', 't23', 't24', 't25', 't26', 't27', 't28', 't29', 't30', 't31', 't32', 't33', 't34', 't35', 't36 ', 't37', 't38', 't39', 't40', 't41', 't42', 't43', 't44', 't45', 't46', 't47', 't48', 't49', 't50', 't51', 't52', 't53' , 't54', 't55', 't56', 't57', 't58', 't59', 't60', 't61', 't62', 't63', 't64', 't65', 't66', 't67', 't68', 't69', 't70', 't71', 't72', 't73', 't74', 't75', 't76', 't77', 't78', 't79', 't80', 't81', 't82', 't83', 't84', 't85', 't86', 't87', 't88', 't89', 't90']
 
@@ -59,6 +58,9 @@ y_test = np.array(y_test)
 
 #%%
 
+# Produce Figure 3
+np.random.seed(147)
+
 def rand_fourier_features(X, D, sigma):
     # d: dimension of data; D: dimension of samples
     d = X.shape[1]
@@ -94,7 +96,7 @@ def compute_gram_mat(X1, X2, sigma):
 #N_train = 463715
 #N_test = 51630
 
-N_train = 4096 # small sample test
+N_train = 8192 # small sample test
 N_test = int(N_train/8)
 
 X_train_s = np.array(X_train[0:N_train])
@@ -102,79 +104,106 @@ X_test_s = np.array(X_test[0:int(N_train/8)])
 y_train_s = np.array(y_train[0:N_train])
 y_test_s = np.array(y_test[0:int(N_train/8)])
 
-# X_train_std = np.std(X_train, axis = 0)
-#X_train = X_train / X_train_std
-
-#X, y = init_sim_data(2000)
-
-#print(np.linalg.norm(X[1] - X[-4]))
-#for i, item in enumerate(X_train):
-#    X_train[i] = X_train[i] / X_train_std[i]
-"""
-print(y_train)
-
-print(np.linalg.norm(X_train[0] - X_train[1]))
-print(y_train[0])
-print(y_train[1])
-
-print(np.linalg.norm(X_train[0] - X_train[2]))
-print(y_train[0])
-print(y_train[2])
-
-print(np.linalg.norm(X_train[1] - X_train[2]))
-print(y_train[1])
-print(y_train[2])
-
-print(np.linalg.norm(X_train[0] - X_train[-1]))
-print(y_train[0])
-print(y_train[-1])
-
-print(np.linalg.norm(X_train[0] - X_train[-2]))
-print(y_train[0])
-print(y_train[-2])
-
-print(np.linalg.norm(X_train[0] - X_train[-3]))
-print(y_train[0])
-print(y_train[-2])
-
-print(np.linalg.norm(X_train[1] - X_train[-4]))
-print(y_train[0])
-print(y_train[-2])
-
-#print(np.std(X_train, axis = 1))
-
-# print(np.linalg.norm(X_train[1] - X_train[-3]))
-#print(y_train[1])
-#print(y_train[-3])
-
-#print(y_train)
-#print(y_train[-3])
-"""
-
-D = 200
+m_lst = np.array([32, 38, 48, 64, 96, 128, 256])
+D_lst = np.array([100, 200, 300, 400, 500, 600])
+rank_lst = np.array([50, 60, 70, 80, 90, 100])
+sim_num = 10
 sigma = 45
 lam = N_train**(-1)
+mse_KRR = np.zeros((len(m_lst), sim_num))
+mse_nys = np.zeros((len(rank_lst), sim_num))
+mse_ran = np.zeros((len(D_lst), sim_num))
+run_time_KRR = np.zeros(len(m_lst))
+run_time_Nys = np.zeros(len(rank_lst))
+run_time_ran = np.zeros(len(D_lst))
 
-K = compute_gram_mat(X_train_s, X_train_s, sigma)
-alpha = np.linalg.solve(K + lam * N_train * np.eye(N_train), y_train_s)
-K_test = compute_gram_mat(X_test_s, X_train_s, sigma)
-y_pred = K_test @ alpha
-#print(y_pred)
-mse_na = np.mean((y_test_s - y_pred)**2)
-print("Kernel Ridge regression: ", mse_na)
+for k in range(sim_num):
+    ind_1 = [x for x in range(N_train)]
+    shuffle(ind_1)
+    ind_2 = [x for x in range(N_test)]
+    shuffle(ind_2)
+    np.take(X_train_s, ind_1, axis = 0, out = X_train_s)
+    np.take(X_test_s, ind_2, axis = 0, out = X_test_s)
+    np.take(y_train_s, ind_1, axis = 0, out = y_train_s)
+    np.take(y_test_s, ind_2, axis = 0, out = y_test_s)
+    
+    for j, m in enumerate(m_lst): 
+        start_time = time.time()
+        n = int(N_train/m)
+        X_train_split = split_into_m_parts(X_train_s, m) # shape of m, n, d
+        y_train_split = split_into_m_parts(y_train_s, m)
+        
+        y_pred_lst = np.zeros((m, N_test))
+        for i, (XX, yy) in enumerate(zip(X_train_split, y_train_split)):
+            K = compute_gram_mat(XX, XX, sigma)
+            alpha = np.linalg.solve(K + lam * n * np.eye(n), yy)
+            K_test = compute_gram_mat(X_test_s, XX, sigma)
+            y_pred_lst[i] = K_test @ alpha
+        y_pred = np.mean(y_pred_lst, axis = 0)
+        #print(np.max(y_pred))
+        #print(np.min(y_pred))
+        mse_KRR[j,k] = np.mean((y_test_s - y_pred)**2)
+        run_time_KRR[j] += time.time() - start_time
+    
+    
+    for j, D in enumerate(D_lst):
+        start_time = time.time()
+        ran_one = np.zeros(40)
+        for l in range(40):
+            Z = rand_fourier_features(X_train_s, D, sigma)
+            new_col = np.ones(N_train).reshape(N_train, 1)
+            ZZ = np.concatenate((Z, new_col), 1)
+            Zt = rand_fourier_features(X_test_s, D, sigma)
+            new_col = np.ones(N_test).reshape(N_test, 1)
+            ZZt = np.concatenate((Zt, new_col), 1)
+            w = np.linalg.solve(ZZ.transpose() @ ZZ + lam * N_train * np.eye(D+1), ZZ.transpose() @ y_train_s) # TODO: check add intercept: solution is this? Probably yes. 
+            y_pred = ZZt @ w
+            ran_one[l] = np.mean((y_test_s - y_pred)**2)
+        print(np.amin(ran_one))
+        mse_ran[j,k] = np.amin(ran_one)
+        # mse_ran[j,k] = np.mean((y_test_s - y_pred)**2)
+        print(mse_ran[j,k])
+        run_time_ran[j] += time.time() - start_time
+    
+    for j, rank in enumerate(rank_lst):
+        # Nystrom sampling
+        start_time = time.time()
+        Knm = compute_gram_mat(X_train_s, X_train_s[0:rank], sigma)
+        Kmm = compute_gram_mat(X_train_s[0:rank], X_train_s[0:rank], sigma)
+        U, D, VT = np.linalg.svd(Kmm, full_matrices=False)
+        C = Knm @ U @ np.diag(np.sqrt(D)**(-1))
+        mu = lam * N_train
+        CT = C.transpose()
+        T = CT @ C + mu * np.eye(rank)
+        alpha = 1 / mu * (y_train_s - C @ np.linalg.inv(T) @ CT @ y_train_s)
+        K_test = compute_gram_mat(X_test_s, X_train_s, sigma)
+        y_pred = K_test @ alpha
+        mse_nys[j,k] = np.mean((y_test_s - y_pred)**2)
+        run_time_Nys[j] += time.time() - start_time
+    
+    print("{}th iteration done".format(k))
 
-Z = rand_fourier_features(X_train_s, D, sigma)
-new_col = np.ones(N_train).reshape(N_train, 1)
-ZZ = np.concatenate((Z, new_col), 1)
-Zt = rand_fourier_features(X_test_s, D, sigma)
-new_col = np.ones(N_test).reshape(N_test, 1)
-ZZt = np.concatenate((Zt, new_col), 1)
-w = np.linalg.solve(ZZ.transpose() @ ZZ + lam * N_train * np.eye(D+1), ZZ.transpose() @ y_train_s) # TODO: check add intercept: solution is this? 
-y_pred = ZZt @ w
-#print(y_pred)
-mse = np.mean((y_test_s - y_pred)**2)
-print("Random Feature Approximation: ", mse)
+mse_KRR_err = np.std(mse_KRR, axis = 1)
+mse_KRR = np.mean(mse_KRR, axis = 1)
+mse_nys_err = np.std(mse_nys, axis = 1)
+mse_nys = np.mean(mse_nys, axis = 1)
+mse_ran_err = np.std(mse_ran, axis = 1)
+mse_ran = np.mean(mse_ran, axis = 1)
 
+# Plot results
+fig, ax = plt.subplots()
+cols = ['red', 'blue', 'purple']
+markers = ['o', 's', '^']
+ax.errorbar(run_time_KRR, mse_KRR, yerr = mse_KRR_err, c=cols[0], marker=markers[0],label='Fast-KRR',capsize=5)
+ax.errorbar(run_time_ran, mse_ran, yerr = mse_ran_err, c=cols[1], marker=markers[1],label='Random Feature Approx.',capsize=5) # seeds: 111, 147
+ax.errorbar(run_time_Nys, mse_nys, yerr = mse_nys_err, c=cols[2], marker=markers[2],label='Nystrom Sampling',capsize=5)
+plt.legend(loc='upper right')
+plt.xlabel("time")
+plt.ylabel("Mean square error")
+plt.savefig("N={} Fig3_avg".format(N_train))
+
+#%%
+    
 """
 SM = N_train**(-1/2) * Z
 new_col = np.ones(N_train).reshape(N_train, 1)
@@ -186,6 +215,14 @@ mse = np.mean((y_test_s - y_pred)**2)
 print("Random Feature Approximation 2: ", mse)
 #w_l = np.linalg.solve(X_train_s.transpose() @ X_train_s, X_train_s.transpose() @ y_train_s)
 """
+
+K = compute_gram_mat(X_train_s, X_train_s, sigma)
+alpha = np.linalg.solve(K + lam * N_train * np.eye(N_train), y_train_s)
+K_test = compute_gram_mat(X_test_s, X_train_s, sigma)
+y_pred = K_test @ alpha
+#print(y_pred)
+mse_na = np.mean((y_test_s - y_pred)**2)
+print("Kernel Ridge regression: ", mse_na)
 
 new_col = np.ones(N_train).reshape(N_train, 1)
 X_train_ss = np.concatenate((X_train_s, new_col), 1)
@@ -202,28 +239,6 @@ y_pred = clf.predict(X_test_s)
 lin_err = np.mean((y_test_s - y_pred)**2)
 print("Linear Regression sklearn: ", lin_err)
 
-#%%
-
-# Nystrom sampling
-rank = 1000
-Knm = compute_gram_mat(X_train_s, X_train_s[0:rank], sigma)
-Kmm = compute_gram_mat(X_train_s[0:rank], X_train_s[0:rank], sigma)
-U, D, VT = np.linalg.svd(Kmm, full_matrices=False)
-#print(np.linalg.norm(U.transpose() - VT))
-print(np.diag(D))
-C = Knm @ U @ np.diag(np.sqrt(D)**(-1))
-print(C)
-mu = lam * N_train
-#print(mu)
-CT = C.transpose()
-T = CT @ C + mu * np.eye(rank)
-alpha = 1 / mu * (y_train_s - C @ np.linalg.inv(T) @ CT @ y_train_s)
-K_test = compute_gram_mat(X_test_s, X_train_s, sigma)
-y_pred = K_test @ alpha
-#print(y_pred)
-mse_nys = np.mean((y_test_s - y_pred)**2)
-print("Nystrom sampling: ", mse_nys)
-
             
 #%%
 
@@ -237,6 +252,9 @@ y_pred = clf2.predict(X_test_s)
 print("Kernel Ridge sklearn: ", np.mean((y_test_s - y_pred)**2))
 
 #%%
+
+# Cross validation to find best parameter
+
 err_lst = np.zeros((20, 20, 5))
 alpha_lst = np.linspace(1/1000, 1/100, num = 20)
 #alpha = 1/100
@@ -272,6 +290,8 @@ err_min = np.min(err_lst)
 min_ind = np.where(err_lst == err_min)
 print(err_lst)
 #%%
+
+# Produce Figure 4
 
 ind_1 = [x for x in range(N_train)]
 shuffle(ind_1)
@@ -327,4 +347,55 @@ print("Fast KRR no avg: ", mse_na)
 
 print("Linear Regression: ", lin_err)
 #print("Kernel Ridge Regression: ", krr_sk)
+"""
+#%%
+
+
+# X_train_std = np.std(X_train, axis = 0)
+#X_train = X_train / X_train_std
+
+#X, y = init_sim_data(2000)
+
+#print(np.linalg.norm(X[1] - X[-4]))
+#for i, item in enumerate(X_train):
+#    X_train[i] = X_train[i] / X_train_std[i]
+"""
+print(y_train)
+
+print(np.linalg.norm(X_train[0] - X_train[1]))
+print(y_train[0])
+print(y_train[1])
+
+print(np.linalg.norm(X_train[0] - X_train[2]))
+print(y_train[0])
+print(y_train[2])
+
+print(np.linalg.norm(X_train[1] - X_train[2]))
+print(y_train[1])
+print(y_train[2])
+
+print(np.linalg.norm(X_train[0] - X_train[-1]))
+print(y_train[0])
+print(y_train[-1])
+
+print(np.linalg.norm(X_train[0] - X_train[-2]))
+print(y_train[0])
+print(y_train[-2])
+
+print(np.linalg.norm(X_train[0] - X_train[-3]))
+print(y_train[0])
+print(y_train[-2])
+
+print(np.linalg.norm(X_train[1] - X_train[-4]))
+print(y_train[0])
+print(y_train[-2])
+
+#print(np.std(X_train, axis = 1))
+
+# print(np.linalg.norm(X_train[1] - X_train[-3]))
+#print(y_train[1])
+#print(y_train[-3])
+
+#print(y_train)
+#print(y_train[-3])
 """
