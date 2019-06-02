@@ -96,7 +96,7 @@ def compute_gram_mat(X1, X2, sigma):
 #N_train = 463715
 #N_test = 51630
 
-N_train = 8192 # small sample test
+N_train = 4096 # small sample test
 N_test = int(N_train/8)
 
 X_train_s = np.array(X_train[0:N_train])
@@ -105,8 +105,8 @@ y_train_s = np.array(y_train[0:N_train])
 y_test_s = np.array(y_test[0:int(N_train/8)])
 
 m_lst = np.array([32, 38, 48, 64, 96, 128, 256])
-D_lst = np.array([100, 200, 300, 400, 500, 600])
-rank_lst = np.array([50, 60, 70, 80, 90, 100])
+D_lst = np.array([200, 250, 300, 350, 400, 450])
+rank_lst = np.array([15, 30, 40, 50, 60, 70])
 sim_num = 10
 sigma = 45
 lam = N_train**(-1)
@@ -148,12 +148,16 @@ for k in range(sim_num):
     
     for j, D in enumerate(D_lst):
         start_time = time.time()
-        ran_one = np.zeros(40)
-        for l in range(40):
-            Z = rand_fourier_features(X_train_s, D, sigma)
+        ran_one = np.zeros(1)
+        for l in range(1):
+            d = X_train_s.shape[1]
+            w = np.random.multivariate_normal(mean = np.zeros(d), 
+                                              cov = 1/sigma**2 * np.eye(d), size = D)
+            b = np.random.uniform(low = 0, high = 2*np.pi, size = D)
+            Z = np.sqrt(2/D) * np.cos(np.matmul(w, np.transpose(X_train_s)).transpose() + b)
             new_col = np.ones(N_train).reshape(N_train, 1)
             ZZ = np.concatenate((Z, new_col), 1)
-            Zt = rand_fourier_features(X_test_s, D, sigma)
+            Zt = np.sqrt(2/D) * np.cos(np.matmul(w, np.transpose(X_test_s)).transpose() + b)
             new_col = np.ones(N_test).reshape(N_test, 1)
             ZZt = np.concatenate((Zt, new_col), 1)
             w = np.linalg.solve(ZZ.transpose() @ ZZ + lam * N_train * np.eye(D+1), ZZ.transpose() @ y_train_s) # TODO: check add intercept: solution is this? Probably yes. 
