@@ -44,11 +44,11 @@ def main():
     ax.set_yscale('log')
     for i, (logmn, mse) in enumerate(zip(mse_lst, logmnLst)):
         ax.plot(mse, logmn, c=cols[i], marker=markers[i],label='N={}'.format(2**(i+8)))
-    plt.legend(loc='upper left')
+    ax.set_yticks(np.array([0.0003, 0.001, 0.005, 0.01, 0.02]))
+    plt.legend(loc='lower right')
     plt.xlabel("log(# of partitions)/log(# of samples)")
     plt.ylabel("Mean square error")
-    #plt.title("Kernel Ridge Regression without under-regularization")
-
+    
     plt.show()
 
 if __name__ == '__main__':

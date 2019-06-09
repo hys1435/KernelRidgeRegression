@@ -81,7 +81,7 @@ for i in range(n):
             label='{}th eigenfunction'.format(i+1))
     #ax.set_yscale('log')
 plt.legend(loc='upper left')
-plt.xlabel("Eigenfunction")
+plt.xlabel("x")
 plt.ylabel("Value")
 plt.show()
 
